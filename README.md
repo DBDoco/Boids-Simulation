@@ -16,6 +16,8 @@
 - **QuadTree Optimization**: The simulation uses a QuadTree data structure for efficient neighbor searches, enhancing performance with a large number of agents.
 - **Interactive Visualization**: The Pygame interface allows users to observe and interact with the dynamic flocking behavior in real-time.
 - **Boundary Handling**: Boids are constrained within the window boundaries, preventing them from leaving the visible area.
+- **Predator**: Introduced a predator with shark-like behavior, enhancing the simulation's realism and adding an additional layer of interaction with smaller boids.
+
 
 ## Requirements
 
