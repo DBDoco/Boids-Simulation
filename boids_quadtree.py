@@ -6,7 +6,7 @@ screen_size = 800
 MARGIN = screen_size * 0.05
 
 class Boid:
-    NUM_BOIDS = 100
+    NUM_BOIDS = 200
     DISTANCE_VISIBLE = 42
     DISTANCE_SEPARATION = 20
     MAX_SPEED = 0.1
@@ -79,6 +79,57 @@ class Boid:
         self.velocity = self.velocity_buffer.copy()
         self.position += self.velocity
 
+    def flee(self, predator):
+        # Flee: Move away from the predator
+        distance_to_predator = self.position.distance_to(predator.position)
+        if distance_to_predator < Predator.DISTANCE_VISIBLE:
+            self.velocity_buffer += (self.position - predator.position).normalize() * Boid.MAX_SPEED
+
+class Predator:
+    DISTANCE_VISIBLE = 60
+    MAX_SPEED = 0.6
+    
+    def __init__(self, color=(255, 0, 0)):
+        # Initialize a predator with color and random position and velocity
+        self.position = pygame.math.Vector2(random.randint(0, screen_size), random.randint(0, screen_size))
+        self.velocity = pygame.math.Vector2(random.uniform(-Predator.MAX_SPEED, Predator.MAX_SPEED), random.uniform(-Predator.MAX_SPEED, Predator.MAX_SPEED))
+        self.velocity_buffer = self.velocity.copy()
+        self.color = color
+
+    def chase(self, boids):
+        # Chase boids: Move towards the average position of visible boids
+        center_of_mass = pygame.math.Vector2(0, 0)
+        count = 0
+
+        for boid in boids:
+            if self.position.distance_to(boid.position) < Predator.DISTANCE_VISIBLE:
+                center_of_mass += boid.position
+                count += 1
+
+        if count > 0:
+            center_of_mass /= count
+            self.velocity_buffer += (center_of_mass - self.position).normalize() * Predator.MAX_SPEED
+
+    def keep_in_bounds(self):
+        # Keep within the window boundaries
+        TURN_FACTOR = 0.01
+        turn = Boid.MAX_SPEED * TURN_FACTOR
+        if self.position.x < MARGIN:
+            self.velocity_buffer.x += turn
+        if self.position.x > screen_size - MARGIN:
+            self.velocity_buffer.x -= turn
+        if self.position.y < MARGIN:
+            self.velocity_buffer.y += turn
+        if self.position.y > screen_size - MARGIN:
+            self.velocity_buffer.y -= turn
+    
+    def update_position(self):
+        # Update position based on the current velocity
+        if self.velocity_buffer.length() > Predator.MAX_SPEED:
+            self.velocity_buffer *= 0.4
+        self.velocity = self.velocity_buffer.copy()
+        self.position += self.velocity
+
 def main():
     pygame.init()
     screen = pygame.display.set_mode((screen_size, screen_size))
@@ -88,6 +139,8 @@ def main():
                    random.randint(**color_range),
                    random.randint(**color_range))) for _ in range(Boid.NUM_BOIDS)]
     
+    predator = Predator()
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -104,6 +157,8 @@ def main():
         # Insert all boids (as points) into the QuadTree
         for boid in boids:
             qtree.insert(Point(boid))
+        # Insert the predator into the QuadTree
+        qtree.insert(Point(predator))
 
         for boid in boids:
             # Define the area around the boid to consider when searching for other boids
@@ -120,11 +175,20 @@ def main():
             boid.cohere(far_visible_boids)
             boid.align(far_visible_boids)
             boid.separate(close_boids)
-            
+
+            # Flee from the predator
+            boid.flee(predator)
+
             # Keep within window bounds, update position, and draw on the screen
             boid.keep_in_bounds()
             boid.update_position()
             pygame.draw.circle(screen, boid.color, (int(boid.position.x), int(boid.position.y)), 2)
+            
+        # Apply predator behavior
+        predator.chase(boids)
+        predator.keep_in_bounds()
+        predator.update_position()
+        pygame.draw.circle(screen, predator.color, (int(predator.position.x), int(predator.position.y)), 5)
             
         # Draw the QuadTree on the screen
         qtree.draw(screen)
