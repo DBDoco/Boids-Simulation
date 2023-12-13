@@ -2,30 +2,30 @@ import pygame
 
 class Point:
     def __init__(self, boid):
-        # Inicijalizacija točke s koordinatama boida
+        # Initialize a point with the coordinates of the boid
         self.x = boid.position.x
         self.y = boid.position.y
         self.boid = boid
 
 class Rectangle:
     def __init__(self, x, y, hw, hh):
-        # Inicijalizacija pravokutnika s centrom (x, y) i polovicama širine i visine (hw, hh)
-        self.x = x  
-        self.y = y  
+        # Initialize a rectangle with the center (x, y) and half-width and half-height (hw, hh)
+        self.x = x
+        self.y = y
         self.hw = hw
-        self.hh = hh  
-    
+        self.hh = hh
+
     def contains(self, point):
-        # Provjera sadržaja točke unutar pravokutnika
+        # Check if a point is within the rectangle
         does_contain = \
             point.x >= self.x - self.hw and \
             point.x < self.x + self.hw and \
             point.y >= self.y - self.hh and \
             point.y < self.y + self.hh
         return does_contain
-    
+
     def intersects(self, rect_range):
-        # Provjera presjecanja pravokutnika s drugim pravokutnikom
+        # Check if a rectangle intersects with another rectangle
         doesnt_intersect = \
             rect_range.x - rect_range.hw > self.x + self.hw or \
             rect_range.x + rect_range.hw < self.x - self.hw or \
@@ -37,14 +37,14 @@ class QuadTree:
     CAPACITY = 16
 
     def __init__(self, rectangle):
-        # Inicijalizacija QuadTree-a s pravokutnikom
+        # Initialize a QuadTree with a rectangle
         self.rectangle = rectangle
         self.points = []
         self.divided = False
-        self.subqtrees = {} 
+        self.subqtrees = {}
 
     def subdivide(self):
-        # Podjela QuadTree-a na četiri podstablova
+        # Divide the QuadTree into four sub-trees
         hw = self.rectangle.hw / 2
         hh = self.rectangle.hh / 2
         x = self.rectangle.x
@@ -57,7 +57,7 @@ class QuadTree:
         self.divided = True
 
     def insert(self, point):
-        # Ubacivanje točke u odgovarajući podstablo
+        # Insert a point into the appropriate sub-tree
         if len(self.points) < QuadTree.CAPACITY and not self.divided:
             self.points.append(point)
         else:
@@ -71,7 +71,7 @@ class QuadTree:
                     subqt.insert(point)
 
     def query(self, rect_range):
-        # Proučavanje točaka unutar određenog područja
+        # Query points within a specified area
         found = []
         if self.rectangle.intersects(rect_range):
             found.extend([point.boid for point in self.points])
@@ -85,7 +85,7 @@ class QuadTree:
         return found
 
     def draw(self, screen):
-        # Crtanje QuadTree-a na ekranu
+        # Draw the QuadTree on the screen
         rect = pygame.Rect(self.rectangle.x - self.rectangle.hw, self.rectangle.y - self.rectangle.hh,
                             self.rectangle.hw * 2, self.rectangle.hh * 2)
         pygame.draw.rect(screen, (100, 100, 0), rect, 1)
